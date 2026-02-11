@@ -1,0 +1,17 @@
+{
+  "name": "cdl-timer",
+  "version": "1.0.0",
+  "description": "Global synchronized timer webapp with real-time updates",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["timer", "socket.io", "real-time"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1"
+  }
+}

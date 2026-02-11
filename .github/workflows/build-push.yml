@@ -1,0 +1,50 @@
+name: Build and Push Image
+
+on:
+  push:
+    branches: ["master", "main"]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute image tags
+        id: meta
+        shell: bash
+        run: |
+          REPO="${GITHUB_REPOSITORY,,}"   # owner/repo lowercased
+          HOST="${{ secrets.REGISTRY_HOST }}"
+
+          # Strip accidental scheme/trailing slash (common cause of 401)
+          HOST="${HOST#http://}"
+          HOST="${HOST#https://}"
+          HOST="${HOST%/}"
+
+          echo "SHA_TAG=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "IMAGE=${HOST}/${REPO}" >> "$GITHUB_OUTPUT"
+          echo "HOST=${HOST}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to registry
+        shell: bash
+        run: |
+          echo "${{ secrets.REGISTRY_PASS }}" | docker login "${{ steps.meta.outputs.HOST }}" \
+            -u "${{ secrets.REGISTRY_USER }}" --password-stdin
+
+      - name: Build
+        shell: bash
+        run: |
+          docker build \
+            -t "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}" \
+            -t "${{ steps.meta.outputs.IMAGE }}:latest" \
+            .
+
+      - name: Push
+        shell: bash
+        run: |
+          docker push "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}"
+          docker push "${{ steps.meta.outputs.IMAGE }}:latest"

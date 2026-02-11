@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDL Timer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+        <span class="theme-icon">🌙</span>
+    </button>
+
+    <!-- Timer Display -->
+    <div class="timer-container" id="timer-container">
+        <div class="timer" id="timer-1">
+            <div class="timer-name" id="timer-1-name">Timer 1</div>
+            <div class="timer-display" id="timer-1-display">00:00:00</div>
+        </div>
+        <div class="timer" id="timer-2" style="display: none;">
+            <div class="timer-name" id="timer-2-name">Timer 2</div>
+            <div class="timer-display" id="timer-2-display">00:00:00</div>
+        </div>
+    </div>
+
+    <!-- Control Drawer -->
+    <div class="drawer" id="drawer">
+        <div class="drawer-handle" id="drawer-handle">
+            <div class="drawer-handle-bar"></div>
+        </div>
+
+        <div class="drawer-content" id="drawer-content">
+            <!-- Drawer Timer Displays -->
+            <div class="drawer-timers" id="drawer-timers">
+                <div class="drawer-timer" id="drawer-timer-1">
+                    <div class="drawer-timer-name" id="drawer-timer-1-name">Timer 1</div>
+                    <div class="drawer-timer-display" id="drawer-timer-1-display">00:00:00</div>
+                </div>
+                <div class="drawer-timer" id="drawer-timer-2" style="display: none;">
+                    <div class="drawer-timer-name" id="drawer-timer-2-name">Timer 2</div>
+                    <div class="drawer-timer-display" id="drawer-timer-2-display">00:00:00</div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls" id="controls">
+                <div class="control-section">
+                    <h3>Global Controls</h3>
+                    <div class="controls-layout">
+                        <div class="main-controls">
+                            <div class="button-group">
+                                <button id="show-one-timer" class="active">1 Timer</button>
+                                <button id="show-two-timers">2 Timers</button>
+                            </div>
+                            <div class="button-group">
+                                <button id="start-all" class="start-btn">Start All</button>
+                                <button id="stop-all" class="stop-btn">Stop All</button>
+                                <button id="reset-3min">Reset to 3 min</button>
+                                <button id="reset-5min">Reset to 5 min</button>
+                            </div>
+                        </div>
+                        <div class="refresh-control">
+                            <button id="refresh-all" class="refresh-btn">Refresh All Clients</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timer Controls Side-by-Side -->
+                <div class="timer-controls-container">
+                    <!-- Timer 1 Controls -->
+                    <div class="timer-control-column">
+                        <h3>Timer 1</h3>
+                        <input type="text" id="timer-1-name-input" placeholder="Timer 1 Name" maxlength="30">
+                        <div class="button-group">
+                            <button id="start-timer-1" class="start-btn">Start</button>
+                            <button id="stop-timer-1" class="stop-btn">Stop</button>
+                        </div>
+                    </div>
+
+                    <!-- Timer 2 Controls -->
+                    <div class="timer-control-column" id="timer-2-controls">
+                        <h3>Timer 2</h3>
+                        <input type="text" id="timer-2-name-input" placeholder="Timer 2 Name" maxlength="30">
+                        <div class="button-group">
+                            <button id="start-timer-2" class="start-btn">Start</button>
+                            <button id="stop-timer-2" class="stop-btn">Stop</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

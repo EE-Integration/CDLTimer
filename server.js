@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-const PORT = 3044;
+const PORT = process.env.PORT || 3044;
 const REFRESH_VERSION_FILE = path.join(__dirname, '.refresh-version');
 
 // Global timer state

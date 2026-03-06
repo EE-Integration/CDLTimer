@@ -1,14 +1,17 @@
-name: Build and Push Image
-
+name: Docker Build and Deploy
 
 on:
   push:
     branches: ["master", "main"]
   workflow_dispatch:
 
+env:
+  REGISTRY_HOST: 127.0.0.1:5000
+  PORTAINER_STACK_WEBHOOK: 
+
 jobs:
   build-and-push:
-    runs-on: self-hosted
+    runs-on: [self-hosted, ctr1, docker]
 
     steps:
       - name: Checkout
@@ -18,10 +21,9 @@ jobs:
         id: meta
         shell: bash
         run: |
-          REPO="${GITHUB_REPOSITORY,,}"   # owner/repo lowercased
-          HOST="${{ secrets.REGISTRY_HOST }}"
-
-          # Strip accidental scheme/trailing slash (common cause of 401)
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY,,}"
+          HOST="${REGISTRY_HOST}"
           HOST="${HOST#http://}"
           HOST="${HOST#https://}"
           HOST="${HOST%/}"
@@ -30,15 +32,10 @@ jobs:
           echo "IMAGE=${HOST}/${REPO}" >> "$GITHUB_OUTPUT"
           echo "HOST=${HOST}" >> "$GITHUB_OUTPUT"
 
-      - name: Login to registry
-        shell: bash
-        run: |
-          echo "${{ secrets.REGISTRY_PASS }}" | docker login "${{ steps.meta.outputs.HOST }}" \
-            -u "${{ secrets.REGISTRY_USER }}" --password-stdin
-
       - name: Build
         shell: bash
         run: |
+          set -euo pipefail
           docker build \
             -t "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}" \
             -t "${{ steps.meta.outputs.IMAGE }}:latest" \
@@ -47,5 +44,48 @@ jobs:
       - name: Push
         shell: bash
         run: |
+          set -euo pipefail
           docker push "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}"
           docker push "${{ steps.meta.outputs.IMAGE }}:latest"
+
+      - name: Trigger Portainer stack webhook
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network host \
+            -e WEBHOOK_URL="${PORTAINER_STACK_WEBHOOK}" \
+            "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}" \
+            node -e '
+              const https = require("https");
+              const webhook = process.env.WEBHOOK_URL;
+              if (!webhook) {
+                console.error("PORTAINER_STACK_WEBHOOK is not set");
+                process.exit(1);
+              }
+
+              const url = new URL(webhook);
+              const req = https.request(
+                {
+                  protocol: url.protocol,
+                  hostname: url.hostname,
+                  port: url.port || 443,
+                  path: url.pathname + url.search,
+                  method: "POST",
+                  rejectUnauthorized: false
+                },
+                (res) => {
+                  if (res.statusCode >= 200 && res.statusCode < 300) {
+                    process.exit(0);
+                  }
+                  console.error(`Webhook failed with status ${res.statusCode}`);
+                  process.exit(1);
+                }
+              );
+
+              req.on("error", (err) => {
+                console.error("Webhook request error:", err.message);
+                process.exit(1);
+              });
+
+              req.end();
+            '

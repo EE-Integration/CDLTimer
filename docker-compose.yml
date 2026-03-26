@@ -1,0 +1,13 @@
+services:
+  cdl-timer:
+    image: cdl-timer:local
+    container_name: cdl-timer
+    environment:
+      - PORT=3044
+    restart: unless-stopped
+    networks:
+      - dmz_net
+
+networks:
+  dmz_net:
+    external: true

@@ -24,6 +24,10 @@ const startTimer1 = document.getElementById('start-timer-1');
 const stopTimer1 = document.getElementById('stop-timer-1');
 const startTimer2 = document.getElementById('start-timer-2');
 const stopTimer2 = document.getElementById('stop-timer-2');
+const resetTimer13Min = document.getElementById('reset-timer-1-3min');
+const resetTimer15Min = document.getElementById('reset-timer-1-5min');
+const resetTimer23Min = document.getElementById('reset-timer-2-3min');
+const resetTimer25Min = document.getElementById('reset-timer-2-5min');
 const startAll = document.getElementById('start-all');
 const stopAll = document.getElementById('stop-all');
 const drawerTimer1Element = document.getElementById('drawer-timer-1');
@@ -175,15 +179,20 @@ showTwoTimers.addEventListener('click', () => {
 });
 
 // Reset Controls
-const reset3min = document.getElementById('reset-3min');
-const reset5min = document.getElementById('reset-5min');
-
-reset3min.addEventListener('click', () => {
-  socket.emit('reset-all-timers', 180); // 3 minutes in seconds
+resetTimer13Min.addEventListener('click', () => {
+  socket.emit('reset-timer', { timerId: 1, seconds: 180 });
 });
 
-reset5min.addEventListener('click', () => {
-  socket.emit('reset-all-timers', 300); // 5 minutes in seconds
+resetTimer15Min.addEventListener('click', () => {
+  socket.emit('reset-timer', { timerId: 1, seconds: 300 });
+});
+
+resetTimer23Min.addEventListener('click', () => {
+  socket.emit('reset-timer', { timerId: 2, seconds: 180 });
+});
+
+resetTimer25Min.addEventListener('click', () => {
+  socket.emit('reset-timer', { timerId: 2, seconds: 300 });
 });
 
 // Start/Stop Controls

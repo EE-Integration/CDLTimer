@@ -125,12 +125,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Reset all timers to a specific time
-  socket.on('reset-all-timers', (seconds) => {
-    timerState.timers.forEach(timer => {
-      stopTimer(timer.id);
-      timer.timeInSeconds = seconds;
-    });
+  // Reset a single timer to a specific time
+  socket.on('reset-timer', ({ timerId, seconds }) => {
+    const timer = timerState.timers.find(t => t.id === timerId);
+    if (!timer || typeof seconds !== 'number' || seconds < 0) return;
+
+    stopTimer(timer.id);
+    timer.timeInSeconds = seconds;
     io.emit('timer-update', timerState);
   });
 

@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY_HOST: 127.0.0.1:5000
-  PORTAINER_STACK_WEBHOOK: 
+  PORTAINER_STACK_WEBHOOK: https://10.24.1.43:9443/api/stacks/webhooks/65c3415e-e1ba-4f88-95fa-64755566febd
 
 jobs:
   build-and-push:

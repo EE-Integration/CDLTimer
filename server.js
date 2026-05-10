@@ -11,23 +11,17 @@ const io = socketIO(server);
 const PORT = process.env.PORT || 3044;
 const REFRESH_VERSION_FILE = path.join(__dirname, '.refresh-version');
 
+const MAX_TIMERS = 4;
+
 // Global timer state
 let timerState = {
   timerCount: 1,
-  timers: [
-    {
-      id: 1,
-      name: 'Timer 1',
-      timeInSeconds: 0,
-      isRunning: false
-    },
-    {
-      id: 2,
-      name: 'Timer 2',
-      timeInSeconds: 0,
-      isRunning: false
-    }
-  ]
+  timers: Array.from({ length: MAX_TIMERS }, (_, index) => ({
+    id: index + 1,
+    name: `Timer ${index + 1}`,
+    timeInSeconds: 0,
+    isRunning: false
+  }))
 };
 
 // Timer intervals
@@ -119,7 +113,7 @@ io.on('connection', (socket) => {
 
   // Update timer count
   socket.on('set-timer-count', (count) => {
-    if (count === 1 || count === 2) {
+    if (Number.isInteger(count) && count >= 1 && count <= MAX_TIMERS) {
       timerState.timerCount = count;
       io.emit('timer-update', timerState);
     }

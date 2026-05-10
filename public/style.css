@@ -74,38 +74,46 @@ body {
 
 /* Timer Container */
 .timer-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   padding: 40px 20px 200px 20px;
-  gap: 40px;
-  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.timer-container.timer-count-4 {
+  grid-template-columns: repeat(2, minmax(360px, 1fr));
+  align-content: center;
 }
 
 .timer {
   background: var(--timer-bg);
   border-radius: 20px;
-  padding: 60px 80px;
+  padding: 40px 32px;
   box-shadow: 0 4px 20px var(--drawer-shadow);
   text-align: center;
   transition: background-color 0.3s ease;
-  min-width: 400px;
+  min-width: 0;
 }
 
 .timer-name {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 600;
-  margin-bottom: 40px;
+  margin-bottom: 32px;
   color: var(--text-color);
+  overflow-wrap: anywhere;
 }
 
 .timer-display {
-  font-size: 144px;
+  font-size: 96px;
   font-weight: 700;
   font-family: 'Courier New', monospace;
-  letter-spacing: 12px;
+  letter-spacing: 0;
   color: var(--button-bg);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 /* Drawer */
@@ -162,6 +170,7 @@ body {
   text-align: center;
   flex: 1;
   max-width: 300px;
+  min-width: 0;
 }
 
 .drawer-timer-name {
@@ -169,14 +178,16 @@ body {
   font-weight: 600;
   margin-bottom: 8px;
   color: var(--text-color);
+  overflow-wrap: anywhere;
 }
 
 .drawer-timer-display {
-  font-size: 40px;
+  font-size: 34px;
   font-weight: 700;
   font-family: 'Courier New', monospace;
-  letter-spacing: 3px;
+  letter-spacing: 0;
   color: var(--button-bg);
+  white-space: nowrap;
 }
 
 /* Controls */
@@ -222,7 +233,8 @@ body {
 
 /* Timer Controls Side-by-Side */
 .timer-controls-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 15px;
   margin-top: 0;
 }
@@ -343,28 +355,29 @@ button:active {
 /* Responsive Design */
 @media (max-width: 1024px) {
   .timer-display {
-    font-size: 120px;
-    letter-spacing: 10px;
-  }
-
-  .timer-name {
-    font-size: 32px;
-  }
-}
-
-@media (max-width: 768px) {
-  .timer {
-    min-width: 350px;
-    padding: 50px 60px;
-  }
-
-  .timer-display {
-    font-size: 96px;
-    letter-spacing: 6px;
+    font-size: 80px;
   }
 
   .timer-name {
     font-size: 28px;
+  }
+}
+
+@media (max-width: 768px) {
+  .timer-container.timer-count-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .timer {
+    padding: 36px 24px;
+  }
+
+  .timer-display {
+    font-size: 72px;
+  }
+
+  .timer-name {
+    font-size: 26px;
   }
 
   .drawer-content {
@@ -372,12 +385,11 @@ button:active {
   }
 
   .timer-controls-container {
-    flex-direction: column;
     gap: 15px;
   }
 
   .drawer-timer-display {
-    font-size: 36px;
+    font-size: 26px;
   }
 
   .controls-layout {
@@ -395,13 +407,11 @@ button:active {
 
 @media (max-width: 480px) {
   .timer {
-    min-width: 280px;
-    padding: 40px 40px;
+    padding: 32px 20px;
   }
 
   .timer-display {
-    font-size: 72px;
-    letter-spacing: 4px;
+    font-size: 48px;
   }
 
   .timer-name {

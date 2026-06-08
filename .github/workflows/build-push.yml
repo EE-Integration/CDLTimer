@@ -1,91 +1,254 @@
-name: Docker Build and Deploy
+name: Build, Push, and Redeploy
 
 on:
   push:
     branches: ["master", "main"]
   workflow_dispatch:
 
+concurrency:
+  group: build-deploy-${{ github.repository }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 env:
-  REGISTRY_HOST: 127.0.0.1:5000
-  PORTAINER_STACK_WEBHOOK: https://10.24.1.43:9443/api/stacks/webhooks/65c3415e-e1ba-4f88-95fa-64755566febd
+  REGISTRY_HOST: 10.24.1.43:5000
+  REGISTRY_SCHEME: http
+
+  BUILDKIT_HOST: tcp://10.24.1.43:1234
+  BUILDKIT_VERSION: v0.30.0
+
+  BUILD_CONTEXT: "."
+  DOCKERFILE_DIR: "."
+  DOCKERFILE_NAME: "Dockerfile"
+
+  DEPLOY_DELAY_SECONDS: "10"
 
 jobs:
   build-and-push:
-    runs-on: [self-hosted, ctr1, docker]
+    runs-on: [self-hosted, portainer-buildkit-v1]
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compute image tags
+      - name: Compute image metadata
         id: meta
         shell: bash
         run: |
           set -euo pipefail
+
           REPO="${GITHUB_REPOSITORY,,}"
           HOST="${REGISTRY_HOST}"
+
           HOST="${HOST#http://}"
           HOST="${HOST#https://}"
           HOST="${HOST%/}"
 
-          echo "SHA_TAG=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          SHA_TAG="${GITHUB_SHA::12}"
+
+          echo "REPO=${REPO}" >> "$GITHUB_OUTPUT"
+          echo "SHA_TAG=${SHA_TAG}" >> "$GITHUB_OUTPUT"
           echo "IMAGE=${HOST}/${REPO}" >> "$GITHUB_OUTPUT"
-          echo "HOST=${HOST}" >> "$GITHUB_OUTPUT"
 
-      - name: Build
+          echo "Will publish:"
+          echo "  ${HOST}/${REPO}:${SHA_TAG}"
+          echo "  ${HOST}/${REPO}:latest"
+
+      - name: Configure Docker Hub auth for BuildKit
         shell: bash
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           set -euo pipefail
-          docker build \
-            -t "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}" \
-            -t "${{ steps.meta.outputs.IMAGE }}:latest" \
-            .
 
-      - name: Push
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker push "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}"
-          docker push "${{ steps.meta.outputs.IMAGE }}:latest"
+          if [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
+            echo "Docker Hub credentials are not set; Docker Hub pulls will be anonymous."
+            exit 0
+          fi
 
-      - name: Trigger Portainer stack webhook
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker run --rm --network host \
-            -e WEBHOOK_URL="${PORTAINER_STACK_WEBHOOK}" \
-            "${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}" \
-            node -e '
-              const https = require("https");
-              const webhook = process.env.WEBHOOK_URL;
-              if (!webhook) {
-                console.error("PORTAINER_STACK_WEBHOOK is not set");
-                process.exit(1);
+          mkdir -p "$HOME/.docker"
+
+          AUTH="$(printf '%s:%s' "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN" | base64 | tr -d '\n')"
+
+          cat > "$HOME/.docker/config.json" <<EOF
+          {
+            "auths": {
+              "https://index.docker.io/v1/": {
+                "auth": "${AUTH}"
+              },
+              "docker.io": {
+                "auth": "${AUTH}"
+              },
+              "registry-1.docker.io": {
+                "auth": "${AUTH}"
               }
+            }
+          }
+          EOF
 
-              const url = new URL(webhook);
-              const req = https.request(
-                {
-                  protocol: url.protocol,
-                  hostname: url.hostname,
-                  port: url.port || 443,
-                  path: url.pathname + url.search,
-                  method: "POST",
-                  rejectUnauthorized: false
-                },
-                (res) => {
-                  if (res.statusCode >= 200 && res.statusCode < 300) {
-                    process.exit(0);
-                  }
-                  console.error(`Webhook failed with status ${res.statusCode}`);
-                  process.exit(1);
-                }
-              );
+          chmod 600 "$HOME/.docker/config.json"
 
-              req.on("error", (err) => {
-                console.error("Webhook request error:", err.message);
-                process.exit(1);
-              });
+      - name: Install BuildKit client
+        shell: bash
+        run: |
+          set -euo pipefail
 
-              req.end();
-            '
+          if command -v buildctl >/dev/null 2>&1; then
+            buildctl --version
+            exit 0
+          fi
+
+          case "$(uname -m)" in
+            x86_64|amd64) ARCH="amd64" ;;
+            aarch64|arm64) ARCH="arm64" ;;
+            *)
+              echo "Unsupported architecture: $(uname -m)"
+              exit 1
+              ;;
+          esac
+
+          mkdir -p "$HOME/.local/bin"
+
+          curl -fsSL \
+            "https://github.com/moby/buildkit/releases/download/${BUILDKIT_VERSION}/buildkit-${BUILDKIT_VERSION}.linux-${ARCH}.tar.gz" \
+            -o /tmp/buildkit.tgz
+
+          tar -xzf /tmp/buildkit.tgz -C /tmp
+          cp /tmp/bin/buildctl "$HOME/.local/bin/buildctl"
+          chmod +x "$HOME/.local/bin/buildctl"
+
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          "$HOME/.local/bin/buildctl" --version
+
+
+      - name: Diagnose remote BuildKit TCP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "BUILDKIT_HOST=${BUILDKIT_HOST}"
+
+          echo "--- TCP test ---"
+          timeout 5 bash -lc 'cat < /dev/null > /dev/tcp/10.24.1.43/1234' \
+            && echo "TCP connection to 10.24.1.43:1234 works" \
+            || {
+              echo "TCP connection to 10.24.1.43:1234 failed"
+              exit 1
+            }
+
+      - name: Wait for remote BuildKit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "BUILDKIT_HOST=${BUILDKIT_HOST}"
+
+          for i in {1..60}; do
+            if buildctl --addr "${BUILDKIT_HOST}" debug workers >/dev/null 2>&1; then
+              echo "BuildKit is ready."
+              buildctl --addr "${BUILDKIT_HOST}" debug workers
+              exit 0
+            fi
+
+            echo "Waiting for remote BuildKit... ${i}/60"
+            sleep 1
+          done
+
+          echo "BuildKit did not become ready."
+          buildctl --addr "${BUILDKIT_HOST}" debug workers || true
+          exit 1
+
+      - name: Build and push immutable SHA tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ steps.meta.outputs.IMAGE }}"
+          SHA_TAG="${{ steps.meta.outputs.SHA_TAG }}"
+
+          buildctl --addr "${BUILDKIT_HOST}" build \
+            --frontend dockerfile.v0 \
+            --local "context=${BUILD_CONTEXT}" \
+            --local "dockerfile=${DOCKERFILE_DIR}" \
+            --opt "filename=${DOCKERFILE_NAME}" \
+            --progress plain \
+            --output "type=image,name=${IMAGE}:${SHA_TAG},push=true,registry.insecure=true"
+
+      - name: Build and push latest tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          IMAGE="${{ steps.meta.outputs.IMAGE }}"
+
+          buildctl --addr "${BUILDKIT_HOST}" build \
+            --frontend dockerfile.v0 \
+            --local "context=${BUILD_CONTEXT}" \
+            --local "dockerfile=${DOCKERFILE_DIR}" \
+            --opt "filename=${DOCKERFILE_NAME}" \
+            --progress plain \
+            --output "type=image,name=${IMAGE}:latest,push=true,registry.insecure=true"
+
+      - name: Confirm image exists in registry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REPO="${{ steps.meta.outputs.REPO }}"
+          SHA_TAG="${{ steps.meta.outputs.SHA_TAG }}"
+          MANIFEST_URL="${REGISTRY_SCHEME}://${REGISTRY_HOST}/v2/${REPO}/manifests/${SHA_TAG}"
+
+          ACCEPT_HEADER="Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.docker.distribution.manifest.list.v2+json"
+
+          for i in {1..30}; do
+            if curl -fsS -H "${ACCEPT_HEADER}" "${MANIFEST_URL}" >/dev/null; then
+              echo "Registry has ${REPO}:${SHA_TAG}"
+              exit 0
+            fi
+
+            echo "Waiting for registry manifest... ${i}/30"
+            sleep 1
+          done
+
+          echo "Registry did not return manifest for ${REPO}:${SHA_TAG}"
+          exit 1
+
+      - name: Trigger Portainer redeploy
+        shell: bash
+        env:
+          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
+          PORTAINER_SKIP_TLS_VERIFY: ${{ secrets.PORTAINER_SKIP_TLS_VERIFY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PORTAINER_WEBHOOK_URL:-}" ]; then
+            echo "PORTAINER_WEBHOOK_URL not set; skipping redeploy trigger."
+            exit 0
+          fi
+
+          echo "Waiting ${DEPLOY_DELAY_SECONDS}s before Portainer webhook..."
+          sleep "${DEPLOY_DELAY_SECONDS}"
+
+          URL="${PORTAINER_WEBHOOK_URL}"
+
+          SEP="?"
+          if [[ "${URL}" == *"?"* ]]; then
+            SEP="&"
+          fi
+
+          URL="${URL}${SEP}SERVICE_TAG=${{ steps.meta.outputs.SHA_TAG }}"
+
+          curl_args=(-fsS -X POST)
+
+          if [ "${PORTAINER_SKIP_TLS_VERIFY:-false}" = "true" ]; then
+            curl_args+=("--insecure")
+          fi
+
+          curl "${curl_args[@]}" "${URL}"
+
+          echo "Triggered Portainer webhook."

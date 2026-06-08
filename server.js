@@ -63,6 +63,13 @@ function triggerRefresh() {
 }
 
 // Serve static files
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime()
+  });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Start a timer

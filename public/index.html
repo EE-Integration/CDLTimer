@@ -22,6 +22,14 @@
             <div class="timer-name" id="timer-2-name">Timer 2</div>
             <div class="timer-display" id="timer-2-display">00:00:00</div>
         </div>
+        <div class="timer" id="timer-3" style="display: none;">
+            <div class="timer-name" id="timer-3-name">Timer 3</div>
+            <div class="timer-display" id="timer-3-display">00:00:00</div>
+        </div>
+        <div class="timer" id="timer-4" style="display: none;">
+            <div class="timer-name" id="timer-4-name">Timer 4</div>
+            <div class="timer-display" id="timer-4-display">00:00:00</div>
+        </div>
     </div>
 
     <!-- Control Drawer -->
@@ -41,6 +49,14 @@
                     <div class="drawer-timer-name" id="drawer-timer-2-name">Timer 2</div>
                     <div class="drawer-timer-display" id="drawer-timer-2-display">00:00:00</div>
                 </div>
+                <div class="drawer-timer" id="drawer-timer-3" style="display: none;">
+                    <div class="drawer-timer-name" id="drawer-timer-3-name">Timer 3</div>
+                    <div class="drawer-timer-display" id="drawer-timer-3-display">00:00:00</div>
+                </div>
+                <div class="drawer-timer" id="drawer-timer-4" style="display: none;">
+                    <div class="drawer-timer-name" id="drawer-timer-4-name">Timer 4</div>
+                    <div class="drawer-timer-display" id="drawer-timer-4-display">00:00:00</div>
+                </div>
             </div>
 
             <!-- Controls -->
@@ -50,8 +66,10 @@
                     <div class="controls-layout">
                         <div class="main-controls">
                             <div class="button-group">
-                                <button id="show-one-timer" class="active">1 Timer</button>
-                                <button id="show-two-timers">2 Timers</button>
+                                <button id="show-1-timer" class="timer-count-button active" data-timer-count="1">1 Timer</button>
+                                <button id="show-2-timer" class="timer-count-button" data-timer-count="2">2 Timers</button>
+                                <button id="show-3-timer" class="timer-count-button" data-timer-count="3">3 Timers</button>
+                                <button id="show-4-timer" class="timer-count-button" data-timer-count="4">4 Timers</button>
                             </div>
                             <div class="button-group">
                                 <button id="start-all" class="start-btn">Start All</button>
@@ -91,6 +109,34 @@
                         <div class="button-group">
                             <button id="reset-timer-2-3min">Reset to 3 min</button>
                             <button id="reset-timer-2-5min">Reset to 5 min</button>
+                        </div>
+                    </div>
+
+                    <!-- Timer 3 Controls -->
+                    <div class="timer-control-column" id="timer-3-controls" style="display: none;">
+                        <h3>Timer 3</h3>
+                        <input type="text" id="timer-3-name-input" placeholder="Timer 3 Name" maxlength="30">
+                        <div class="button-group">
+                            <button id="start-timer-3" class="start-btn">Start</button>
+                            <button id="stop-timer-3" class="stop-btn">Stop</button>
+                        </div>
+                        <div class="button-group">
+                            <button id="reset-timer-3-3min">Reset to 3 min</button>
+                            <button id="reset-timer-3-5min">Reset to 5 min</button>
+                        </div>
+                    </div>
+
+                    <!-- Timer 4 Controls -->
+                    <div class="timer-control-column" id="timer-4-controls" style="display: none;">
+                        <h3>Timer 4</h3>
+                        <input type="text" id="timer-4-name-input" placeholder="Timer 4 Name" maxlength="30">
+                        <div class="button-group">
+                            <button id="start-timer-4" class="start-btn">Start</button>
+                            <button id="stop-timer-4" class="stop-btn">Stop</button>
+                        </div>
+                        <div class="button-group">
+                            <button id="reset-timer-4-3min">Reset to 3 min</button>
+                            <button id="reset-timer-4-5min">Reset to 5 min</button>
                         </div>
                     </div>
                 </div>

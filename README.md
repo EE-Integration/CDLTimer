@@ -5,7 +5,7 @@ A global synchronized timer web application built with Node.js, Express, and Soc
 ## Features
 
 - **Real-time Synchronization**: All connected users see the same timer state
-- **Dual Timer Support**: Toggle between displaying 1 or 2 timers
+- **Multi-Timer Support**: Toggle between displaying 1, 2, 3, or 4 timers
 - **Pin-Protected Controls**: Drawer controls are protected with a PIN (default: 1234)
 - **Time Adjustments**: Quickly adjust timer values (+/- 1s, 5s, 1min, 5min)
 - **Custom Timer Names**: Name each timer for easy identification
@@ -40,7 +40,7 @@ The application will run on `http://localhost:3044`
 1. **Open the Control Drawer**: Click on the handle bar at the bottom of the screen
 2. **Enter PIN**: Enter the PIN (default: `1234`) to unlock controls
 3. **Control Options**:
-   - **Display Settings**: Toggle between 1 or 2 timer display
+   - **Display Settings**: Toggle between 1, 2, 3, or 4 timer display
    - **Time Adjustments**: Use the +/- buttons to adjust timer values
    - **Start/Stop**: Control timer running state
    - **Timer Names**: Type custom names for each timer
